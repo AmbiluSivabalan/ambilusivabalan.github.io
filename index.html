@@ -1,164 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    .task-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-  </style>
-  <title>Pomodoro Timer and To-Do List</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
+    <title>Productivity App</title>
+    <style>
+        [data-theme="work"] { background-color: #A7F3D0; }
+        [data-theme="break"] { background-color: #93C5FD; }
+    </style>
 </head>
-<body class="bg-gray-200">
-  <div class="container mx-auto px-5 py-10">
-    <h1 class="text-center text-4xl font-bold mb-10">Pomodoro Timer & To-Do List</h1>
+<body class="bg-gray-100" data-theme="work">
+    <div class="container mx-auto px-4 py-12">
+        <h1 class="text-4xl font-bold mb-8">Productivity App</h1>
 
-    <div class="flex flex-row space-x-10">
-      <div class="timer-container rounded-lg shadow p-5 bg-white">
-        <label for="work-time" class="block">Work Time:</label>
-        <input type="number" id="work-time" min="1" value="25" class="border border-gray-400 mb-2 w-16">
-
-        <label for="break-time" class="block">Break Time:</label>
-        <input type="number" id="break-time" min="1" value="5" class="border border-gray-400 mb-5 w-16">
-
-        <div class="animate-pulse">
-          <label for="time-display" class="block">Time Remaining:</label>
-          <p id="time-display" class="border border-gray-400 p-2 text-center font-bold text-2xl mb-5">25:00</p>
+        <!-- Pomodoro Timer -->
+        <div id="pomodoro-timer" class="bg-white p-6 rounded shadow-lg mb-8">
+            <h2 class="text-2xl mb-4">Pomodoro Timer</h2>
+            <div class="flex items-center mb-4">
+                <input id="work-duration" type="number" min="1" value="25" class="border-2 border-gray-300 p-2 w-16 text-center" required> Work
+                <input id="break-duration" type="number" min="1" value="5" class="border-2 border-gray-300 p-2 w-16 text-center ml-4" required> Break
+            </div>
+            <div class="flex items-center">
+                <button id="start-pomodoro" class="bg-green-500 text-white px-4 py-2 rounded shadow mr-4">Start</button>
+                <button id="reset-pomodoro" class="bg-red-500 text-white px-4 py-2 rounded shadow">Reset</button>
+            </div>
+            <div id="timer" class="text-4xl font-bold mt-4">25:00</div>
+            <div id="timer-mode" class="text-xl font-bold mt-4">Work</div>
+            <div class="mt-4">
+                <p id="cycles-completed">Cycles completed: 0</p>
+                <p id="tasks-finished">Tasks finished: 0</p>
+            </div>
         </div>
 
-        <div class="flex space-x-2">
-          <button id="start-pause-button" class="bg-blue-500 text-white rounded px-4 py-1">Start</button>
-          <button id="reset-button" class="bg-red-500 text-white rounded px-4 py-1">Reset</button>
+        <!-- Task List -->
+        <div id="task-list" class="bg-white p-6 rounded shadow-lg mb-8">
+            <h2 class="text-2xl mb-4">Task List</h2>
+            <form id="add-task-form" class="mb-4">
+                <input id="task-input" type="text" class="border-2 border-gray-300 p-2 w-full mb-2 placeholder-gray-500" placeholder="Task" required>
+                <input id="due-date-input" type="datetime-local" class="border-2 border-gray-300 p-2 w-full mb-2" required>
+                <button class="bg-blue-500 text-white px-4 py-2 rounded shadow">Add Task</button>
+            </form>
+            <ul id="task-list-items"></ul>
         </div>
-      </div>
 
-      <div class="to-do-list-container w-1/2 mt-5 bg-white rounded-lg shadow p-5">
-        <h2 class="text-center text-3xl font-bold mb-5">To-Do List</h2>
-        <div class="flex to-do-input mb-5">
-          <input type="text" id="new-task" placeholder="New task" class="w-full mr-3">
-          <input type="date" id="due-date" class="mr-3">
-          <button id="add-task-button" class="bg-green-500 text-white rounded px-4 py-1">Add Task</button>
+        <!-- Time until stopping widget -->
+        <div id="stop-time-widget" class="bg-white p-6 rounded shadow-lg">
+            <h2 class="text-2xl mb-4">Time until stopping</h2>
+            <div id="time-until-stopping" class="text-4xl font-bold mb-4"></div>
+            <input id="stop-time-input" type="time" class="border-2 border-gray-300 p-2 w-full mb-2" required>
+            <button id="set-stop-time" class="bg-blue-500 text-white px-4 py-2 rounded shadow">Set Stop Time</button>
         </div>
-        <ul id="task-list" class="mb-5"></ul>
-      </div>
     </div>
-  </div>
 
-  <script>
-    const workTimeInput = document.getElementById("work-time");
-    const breakTimeInput = document.getElementById("break-time");
-    const timeDisplay = document.getElementById("time-display");
-    const startPauseButton = document.getElementById("start-pause-button");
-    const resetButton = document.getElementById("reset-button");
+    <script>
+        const startPomodoro = document.getElementById('start-pomodoro');
+        const resetPomodoro = document.getElementById('reset-pomodoro');
+        const timer = document.getElementById('timer');
+        const timerMode = document.getElementById('timer-mode');
+        const workDurationInput = document.getElementById('work-duration');
+        const breakDurationInput = document.getElementById('break-duration');
+        const addTaskForm = document.getElementById('add-task-form');
+        const taskInput = document.getElementById('task-input');
+        const dueDateInput = document.getElementById('due-date-input');
+        const taskListItems = document.getElementById('task-list-items');
+        const stopTimeInput = document.getElementById('stop-time-input');
+        const setStopTime = document.getElementById('set-stop-time');
+        const timeUntilStopping = document.getElementById('time-until-stopping');
+        const cyclesCompleted = document.getElementById('cycles-completed');
+        const tasksFinished = document.getElementById('tasks-finished');
+        const body = document.body;
 
-    const newTaskInput = document.getElementById("new-task");
-    const dueDateInput = document.getElementById("due-date");
-    const addTaskButton = document.getElementById("add-task-button");
-    const taskList = document.getElementById("task-list");
+        let cyclesCount = 0;
+        let tasksCount = 0;
 
-    let timer = {
-      mode: "work",
-      currentTime: parseInt(workTimeInput.value) * 60,
-      running: false,
-      intervalID: null,
-    };
+        function increaseCyclesCounter() {
+            cyclesCount++;
+            cyclesCompleted.textContent = 'Cycles completed: ' + cyclesCount;
+        }
 
-    function timeToString(time) {
-      let minutes = Math.floor(time / 60);
-      let seconds = time % 60;
-      if (seconds < 10) {
-        seconds = "0" + seconds;
-      }
-      return `${minutes}:${seconds}`;
-    }
+        function increaseTasksCounter() {
+            tasksCount++;
+            tasksFinished.textContent = 'Tasks finished: ' + tasksCount;
+        }
 
-    function updateDisplay() {
-      timeDisplay.textContent = timeToString(timer.currentTime);
-      document.body.style.backgroundColor = timer.mode === "work" ? "lightgreen" : "lightblue";
-    }
+        // Pomodoro timer
+        let interval;
+        let workDuration = workDurationInput.value * 60;
+        let breakDuration = breakDurationInput.value * 60;
+        let timeLeft = workDuration;
+        let isWork = true;
 
-    function startPause() {
-      timer.running = !timer.running;
-      if (timer.running) {
-        startPauseButton.textContent = "Pause";
-        timer.intervalID = setInterval(function () {
-          timer.currentTime--;
-          updateDisplay();
-          if (timer.currentTime === 0) {
-            timer.currentTime = timer.mode === "work" ? parseInt(breakTimeInput.value) * 60 : parseInt(workTimeInput.value) * 60;
-            timer.mode = timer.mode === "work" ? "break" : "work";
-          }
-        }, 1000);
-      } else {
-        startPauseButton.textContent = "Start";
-        clearInterval(timer.intervalID);
-      }
-    }
+        function updateTime() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerMode.textContent = isWork ? 'Work' : 'Break';
+        }
 
-    function reset() {
-      timer.running = false;
-      clearInterval(timer.intervalID);
-      timer.mode = "work";
-      timer.currentTime = parseInt(workTimeInput.value) * 60;
-      startPauseButton.textContent = "Start";
-      updateDisplay();
-    }
+        function startTimer() {
+            clearInterval(interval);
 
-    function createTask(taskText, dueDate) {
-      const taskItem = document.createElement("li");
-      taskItem.className = 'task-item mb-2';
+            workDuration = workDurationInput.value * 60;
+            breakDuration = breakDurationInput.value * 60;
 
-      const checkBox = document.createElement("input");
-      checkBox.type = "checkbox";
-      checkBox.addEventListener("change", function () {
-        taskTextElement.style.textDecoration = checkBox.checked ? "line-through" : "none";
-      });
+            interval = setInterval(() => {
+                timeLeft--;
 
-      const taskTextElement = document.createElement("span");
-      taskTextElement.textContent = taskText;
-      taskTextElement.style.marginRight = "5px";
+                if (timeLeft < 0) {
+                    isWork = !isWork;
+                    body.setAttribute('data-theme', isWork ? 'work' : 'break');
+                    timeLeft = (isWork ? workDuration : breakDuration);
+                    if (isWork) {
+                        increaseCyclesCounter();
+                    } else {
+                        increaseTasksCounter();
+                    }
+                }
 
-      const dueDateElement = document.createElement("small");
-      dueDateElement.textContent = `(Due: ${dueDate})`;
-      dueDateElement.style.marginLeft = "5px";
+                updateTime();
+            }, 1000);
+        }
 
-      const removeButton = document.createElement("button");
-      removeButton.textContent = "Remove";
-      removeButton.className = 'bg-red-500 text-white rounded px-2 py-0.5 text-sm ml-2';
-      removeButton.addEventListener("click", function () {
-        taskList.removeChild(taskItem);
-      });
+        function resetTimer() {
+            clearInterval(interval);
+            workDuration = workDurationInput.value * 60;
+            breakDuration = breakDurationInput.value * 60;
+            timeLeft = workDuration;
+            isWork = true;
+            body.setAttribute('data-theme', 'work');
+            updateTime();
+        }
 
-      taskItem.appendChild(checkBox);
-      taskItem.appendChild(taskTextElement);
-      taskItem.appendChild(dueDateElement);
-      taskItem.appendChild(removeButton);
+        startPomodoro.onclick = startTimer;
+        resetPomodoro.onclick = resetTimer;
 
-      return taskItem;
-    }
+        resetTimer();
 
-    function addTask() {
-      const taskText = newTaskInput.value;
-      const dueDate = dueDateInput.value;
+        // Task list
+        let taskList = JSON.parse(localStorage.getItem("throw-treat-tasks")) || [];
 
-      if (taskText === "" || dueDate === "") {
-        return;
-      }
+        function renderTasks() {
+            taskListItems.innerHTML = "";
 
-      const task = createTask(taskText, dueDate);
-      taskList.appendChild(task);
+            taskList.forEach((task, index) => {
+                const dueDate = new Date(task.dueDate);
+                const currentTime = new Date();
+                const timeLeft = Math.max(0, Math.floor((dueDate - currentTime) / 1000));
+                const hoursLeft = Math.floor(timeLeft / 3600);
+                let timeLeftStr = `${hoursLeft}h`;
 
-      newTaskInput.value = "";
-      dueDateInput.value = "";
-    }
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${task.title} - due in ${timeLeftStr}</span> <button class="bg-red-500 text-white px-2 py-1 rounded shadow" data-index="${index}">Delete</button>`;
+                taskListItems.appendChild(li);
+            });
 
-    startPauseButton.addEventListener("click", startPause);
-    resetButton.addEventListener("click", reset);
-    addTaskButton.addEventListener("click", addTask);
-  </script>
+            const deleteButtons = document.querySelectorAll('[data-index]');
+
+            deleteButtons.forEach((button) => {
+                button.onclick = (e) => {
+                    const indexToRemove = parseInt(e.target.getAttribute('data-index'));
+                    taskList.splice(indexToRemove, 1);
+                    localStorage.setItem("throw-treat-tasks", JSON.stringify(taskList));
+                    renderTasks();
+                };
+            });
+        }
+
+        addTaskForm.onsubmit = (e) => {
+            e.preventDefault();
+
+            taskList.push({ title: taskInput.value, dueDate: dueDateInput.value });
+            localStorage.setItem("throw-treat-tasks", JSON.stringify(taskList));
+            taskInput.value = "";
+            dueDateInput.value = "";
+            renderTasks();
+        };
+
+        renderTasks();
+
+        // Time until stopping
+        let stopTime = localStorage.getItem("throw-treat-stop-time");
+
+        if (stopTime) {
+            stopTimeInput.value = stopTime;
+        }
+
+        function updateTimeUntilStopping() {
+            const currentTime = new Date();
+            const stopTimeDate = new Date(currentTime.toDateString() + ' ' + stopTime);
+            
+            if (currentTime > stopTimeDate) {
+                stopTimeDate.setDate(stopTimeDate.getDate() + 1);
+            }
+
+            let timeLeftToStop = Math.floor((stopTimeDate - currentTime) / 1000);
+            let hours = Math.floor(timeLeftToStop / 3600);
+            timeLeftToStop %= 3600;
+            let minutes = Math.floor(timeLeftToStop / 60);
+            let seconds = timeLeftToStop % 60;
+            timeUntilStopping.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        setStopTime.onclick = () => {
+            stopTime = stopTimeInput.value;
+            localStorage.setItem("throw-treat-stop-time", stopTime);
+            updateTimeUntilStopping();
+        };
+
+        setInterval(updateTimeUntilStopping, 1000);
+
+    </script>
 </body>
 </html>
