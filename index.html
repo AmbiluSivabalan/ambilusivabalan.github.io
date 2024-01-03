@@ -27,9 +27,9 @@
     }
   </style>
 </head>
-<body class="bg-white">
+<body class="bg-black">
   <div class="container max-w-xl mx-auto my-10">
-    <h1 class="text-3xl mb-4 text-center">To Do</h1>
+    <h1 class="text-3xl mb-4 text-center text-white">To Do</h1>
     
     <form id="add-task-form" class="flex mb-4">
       <input type="text" id="task-input" class="flex-grow px-3 py-2 border rounded" placeholder="Enter a task...">
@@ -40,8 +40,8 @@
       <!-- Task items will be added here -->
     </ul>
 
-    <h2 class="text-2xl mt-8 mb-2 text-center"></h2>
-    <div class="text-center bg-white text-black">
+    <h2 class="text-2xl mt-8 mb-2 text-center">Timer</h2>
+    <div class="text-center bg-black text-white">
       <span id="timer-display">00:00:00</span><br>
       <button id="timer-start" class="text-white bg-green-500 px-4 py-2 rounded mt-4">Start</button>
       <button id="timer-stop" class="text-white bg-red-500 px-4 py-2 rounded mt-4">Stop</button>
@@ -66,7 +66,7 @@
         taskList.innerHTML = "";
         tasks.forEach((task, index) => {
           const listItem = document.createElement("li");
-          listItem.className = "py-4 flex justify-between items-center";
+          listItem.className = "py-4 flex justify-between items-center text-white";
           
           // Conditionally set styles for completed tasks
           const taskText = document.createElement("span");
