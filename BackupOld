@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
+    <title>Productivity App</title>
+    <style>
+      body.work {
+        background-color: lightgreen;
+      }
+
+      body.break {
+        background-color: lightblue;
+      }
+      
+      .delete-btn {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+      }
+    </style>
+</head>
+<body class="bg-gray-200">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8 text-center">Productivity App</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div id="pomodoro-timer" class="bg-white rounded p-4">
+                <!-- Pomodoro Timer Content -->
+                <h2 class="text-2xl font-bold mb-4">Pomodoro Timer</h2>
+                <div class="flex items-center justify-center">
+                  <button id="toggle-work-break" class="bg-indigo-700 text-white w-auto px-4 py-2 rounded mb-4">Switch Work/Break</button>
+                </div>
+                <div class="text-center mb-4">
+                  <span id="timer" class="text-4xl">25:00</span>
+                </div>
+                <div class="flex justify-around">
+                  <button id="start" class="bg-green-500 text-white w-24 p-2 rounded">Start</button>
+                  <button id="pause" class="bg-yellow-500 text-white w-24 p-2 rounded">Pause</button>
+                  <button id="reset" class="bg-red-500 text-white w-24 p-2 rounded">Reset</button>
+                </div>
+                <div class="flex justify-around mt-4">
+                  <label for="work-time-input">Work Time (min): </label>
+                  <input type="number" id="work-time-input" class="border border-gray-300 w-24 p-2 rounded" min="1" value="25">
+                </div>
+                <div class="flex justify-around mt-2">
+                  <label for="break-time-input">Break Time (min): </label>
+                  <input type="number" id="break-time-input" class="border border-gray-300 w-24 p-2 rounded" min="1" value="5">
+                </div>
+            </div>
+            <div id="countdown-timer" class="bg-white rounded p-4">
+                <!-- Countdown Timer Content -->
+                <h2 class="text-2xl font-bold mb-4">Countdown Timer</h2>
+                <div class="text-center mb-4">
+                  <span id="large-timer" class="text-4xl">00:00:00</span>
+                </div>
+                <div class="flex justify-around">
+                  <input type="time" id="timer-input" class="border border-gray-300 w-24 p-2 rounded">
+                  <button id="set-timer" class="bg-indigo-700 text-white w-auto px-4 py-2 rounded">Set Timer</button>
+                </div>
+            </div>
+            <div id="task-list" class="bg-white rounded p-4">
+                <!-- Task List Content -->
+                <h2 class="text-2xl font-bold mb-4">Task List</h2>
+                <form id="task-form" class="mb-4">
+                  <input type="text" id="task-input" class="border border-gray-300 w-full p-2 rounded mb-4" placeholder="New task">
+                  <input type="datetime-local" id="due-date-input" class="border border-gray-300 w-full p-2 rounded mb-4">
+                  <button class="bg-indigo-700 text-white w-full px-4 py-2 rounded">Add Task</button>
+                </form>
+                <ul id="tasks" class="list-disc ml-4">
+                  <!-- Task items go here -->
+                </ul>
+            </div>
+            <div id="counter" class="bg-white rounded p-4">
+                <!-- Counter Content -->
+                <h2 class="text-2xl font-bold mb-4">Counter</h2>
+                <div>
+                  <span>Work/Break Cycles: </span><span id="pomodoro-cycles">0</span>
+                </div>
+                <div>
+                  <span>Tasks Completed: </span><span id="completed-tasks">0</span>
+                </div>
+                <button id="reset-counter" class="bg-red-500 text-white w-auto px-4 py-2 rounded mt-4">Reset Counter</button>
+            </div>
+        </div>
+    </div>
+    <script>
+      const timer = document.getElementById('timer');
+      const startButton = document.getElementById('start');
+      const pauseButton = document.getElementById('pause');
+      const resetButton = document.getElementById('reset');
+      const toggleWorkBreakButton = document.getElementById('toggle-work-break');
+      const largeTimer = document.getElementById('large-timer');
+      const setTimerButton = document.getElementById('set-timer');
+      const timerInput = document.getElementById('timer-input');
+      const workTimeInput = document.getElementById('work-time-input');
+      const breakTimeInput = document.getElementById('break-time-input');
+      const taskForm = document.getElementById('task-form');
+      const taskInput = document.getElementById('task-input');
+      const dueDateInput = document.getElementById('due-date-input');
+      const tasksList = document.getElementById('tasks');
+      const pomodoroCycles = document.getElementById('pomodoro-cycles');
+      const completedTasks = document.getElementById('completed-tasks');
+      const resetCounterButton = document.getElementById('reset-counter');
+
+      let countdown;
+      let workTime = 25 * 60;
+      let breakTime = 5 * 60;
+      let currentTimerTime = workTime;
+      let work = true;
+      let countdownTimer;
+
+      function displayTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+        return `${(hours < 10) ? '0' + hours : hours}:${(minutes < 10) ? '0' + minutes : minutes}:${(remainingSeconds < 10) ? '0' + remainingSeconds : remainingSeconds}`;
+      }
+
+      function startTimer() {
+        clearInterval(countdown);
+        const now = Date.now();
+        const then = now + currentTimerTime * 1000;
+        countdown = setInterval(function() {
+          const secondsLeft = Math.round((then - Date.now()) / 1000);
+          if (secondsLeft <= 0) {
+            clearInterval(countdown);
+            toggleWorkBreak();
+            startTimer();
+            return;
+          }
+          currentTimerTime = secondsLeft;
+          timer.textContent = displayTime(secondsLeft);
+        }, 1000);
+      }
+
+      function updatePomodoroCycleCounter() {
+        const cycleCount = parseInt(pomodoroCycles.textContent);
+        pomodoroCycles.textContent = `${(cycleCount + 1)}`;
+      }
+
+      function toggleWorkBreak() {
+        work = !work;
+        if (work) {
+          document.body.classList.remove('break');
+          document.body.classList.add('work');
+          currentTimerTime = workTime;
+          updatePomodoroCycleCounter();
+        } else {
+          document.body.classList.remove('work');
+          document.body.classList.add('break');
+          currentTimerTime = breakTime;
+        }
+        timer.textContent = displayTime(currentTimerTime);
+      }
+
+      function pauseTimer() {
+        clearInterval(countdown);
+      }
+
+      function resetTimer() {
+        clearInterval(countdown);
+        currentTimerTime = work ? workTime : breakTime;
+        timer.textContent = displayTime(currentTimerTime);
+      }
+
+      function setLargeTimer() {
+        if (timerInput.value) {
+          const [hours, minutes] = timerInput.value.split(':');
+          const totalSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60;
+          largeTimer.textContent = displayTime(totalSeconds);
+
+          clearInterval(countdownTimer);
+          const endTime = new Date();
+          endTime.setHours(endTime.getHours() + parseInt(hours));
+          endTime.setMinutes(endTime.getMinutes() + parseInt(minutes));
+
+          countdownTimer = setInterval(function() {
+            const now = new Date();
+            const diffInSeconds = Math.floor((endTime - now) / 1000);
+            if (diffInSeconds <= 0) {
+              clearInterval(countdownTimer);
+              largeTimer.textContent = '00:00:00';
+            } else {
+              largeTimer.textContent = displayTime(diffInSeconds);
+            }
+          }, 1000);
+        }
+      }
+
+      function addTask(e) {
+        e.preventDefault();
+
+        if (taskInput.value) {
+          const listItem = document.createElement('li');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.addEventListener('change', updateCompletedTaskCounter);
+          listItem.appendChild(checkbox);
+          listItem.appendChild(document.createTextNode(` ${taskInput.value} (${dueDateInput.value})`));
+
+          const deleteButton = document.createElement('button');
+          deleteButton.innerText = 'Delete';
+          deleteButton.classList.add('delete-btn', 'bg-red-500', 'text-white', 'rounded');
+          deleteButton.onclick = function() {
+            listItem.remove();
+          };
+          listItem.appendChild(deleteButton);
+
+          tasksList.appendChild(listItem);
+          taskInput.value = '';
+          dueDateInput.value = '';
+        }
+      }
+
+      function updateCompletedTaskCounter() {
+        const checkedTasks = document.querySelectorAll('#tasks input:checked');
+        completedTasks.textContent = `${checkedTasks.length}`;
+      }
+
+      function updateWorkTime() {
+        workTime = parseInt(workTimeInput.value) * 60;
+      }
+
+      function updateBreakTime() {
+        breakTime = parseInt(breakTimeInput.value) * 60;
+      }
+
+      function resetCounter() {
+        pomodoroCycles.textContent = '0';
+        completedTasks.textContent = '0';
+      }
+
+      startButton.addEventListener('click', startTimer);
+      pauseButton.addEventListener('click', pauseTimer);
+      resetButton.addEventListener('click', resetTimer);
+      toggleWorkBreakButton.addEventListener('click', toggleWorkBreak);
+      setTimerButton.addEventListener('click', setLargeTimer);
+      taskForm.addEventListener('submit', addTask);
+      workTimeInput.addEventListener('change', updateWorkTime);
+      breakTimeInput.addEventListener('change', updateBreakTime);
+      resetCounterButton.addEventListener('click', resetCounter);
+    </script>
+</body>
+</html>
